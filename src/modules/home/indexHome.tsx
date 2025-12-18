@@ -461,7 +461,8 @@ export const HomeDashboard: React.FC = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                className="lg:hidden p-2 rounded-lg hover:bg-gray-100"
+                className="lg:hidden p-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-colors shadow-md active:scale-95"
+                aria-label={isSidebarOpen ? "Cerrar menú" : "Abrir menú"}
               >
                 {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
@@ -469,7 +470,7 @@ export const HomeDashboard: React.FC = () => {
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold text-gray-800">TikAnalytics MVP</span>
+                <span className="text-xl font-bold text-gray-800 hidden sm:block">TikAnalytics MVP</span>
               </div>
             </div>
 

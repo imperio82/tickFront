@@ -184,7 +184,7 @@ const RegistroFormulario: React.FC = () => {
   };
 
   const renderStep1 = () => (
-    <div className="space-y-4">
+    <div className="space-y-4 text-black">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
           Email *
@@ -305,7 +305,7 @@ const RegistroFormulario: React.FC = () => {
   );
 
   const renderStep2 = () => (
-    <div className="space-y-4">
+    <div className="space-y-4 text-black">
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">
