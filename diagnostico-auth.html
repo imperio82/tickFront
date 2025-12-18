@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnóstico de Autenticación</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; margin-top: 0; }
+        h2 { color: #666; font-size: 18px; margin-top: 0; }
+        pre {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            border-left: 4px solid #7c3aed;
+        }
+        .btn {
+            background: #7c3aed;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        .btn:hover { background: #6d28d9; }
+        .btn-danger {
+            background: #ef4444;
+        }
+        .btn-danger:hover { background: #dc2626; }
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .status.success { background: #10b981; color: white; }
+        .status.error { background: #ef4444; color: white; }
+        .status.warning { background: #f59e0b; color: white; }
+    </style>
+</head>
+<body>
+    <h1>🔐 Diagnóstico de Autenticación TikAnalytics</h1>
+
+    <div class="card">
+        <h2>📊 Estado Actual</h2>
+        <div id="status"></div>
+    </div>
+
+    <div class="card">
+        <h2>👤 Usuario en localStorage</h2>
+        <pre id="user-data"></pre>
+    </div>
+
+    <div class="card">
+        <h2>🔑 Token JWT</h2>
+        <pre id="token-data"></pre>
+    </div>
+
+    <div class="card">
+        <h2>🛠️ Acciones</h2>
+        <button class="btn" onclick="refreshUser()">🔄 Refrescar desde Backend</button>
+        <button class="btn btn-danger" onclick="cleanAndLogout()">🧹 Limpiar y Cerrar Sesión</button>
+    </div>
+
+    <script>
+        function displayStatus() {
+            const user = localStorage.getItem('tickmark_user');
+            const token = localStorage.getItem('tickmark_access_token');
+            const statusDiv = document.getElementById('status');
+
+            let html = '<div style="display: grid; gap: 10px;">';
+
+            // Check user
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+                    const hasRol = userData.hasOwnProperty('rol');
+                    const isAdmin = userData.rol === 'admin';
+
+                    html += `<div>Usuario guardado: <span class="status success">✓ Sí</span></div>`;
+                    html += `<div>Campo 'rol' presente: <span class="status ${hasRol ? 'success' : 'error'}">${hasRol ? '✓ Sí' : '✗ No'}</span></div>`;
+                    html += `<div>Es admin: <span class="status ${isAdmin ? 'success' : 'warning'}">${isAdmin ? '✓ Sí' : '✗ No'}</span></div>`;
+                    if (hasRol) {
+                        html += `<div>Rol actual: <strong>${userData.rol}</strong></div>`;
+                    }
+                } catch (e) {
+                    html += `<div>Error al parsear usuario: <span class="status error">✗ Error</span></div>`;
+                }
+            } else {
+                html += `<div>Usuario guardado: <span class="status error">✗ No</span></div>`;
+            }
+
+            // Check token
+            if (token) {
+                html += `<div>Token presente: <span class="status success">✓ Sí</span></div>`;
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    const hasRolInToken = payload.hasOwnProperty('rol');
+                    html += `<div>Campo 'rol' en token: <span class="status ${hasRolInToken ? 'success' : 'error'}">${hasRolInToken ? '✓ Sí' : '✗ No'}</span></div>`;
+                } catch (e) {
+                    html += `<div>Error al decodificar token: <span class="status error">✗ Error</span></div>`;
+                }
+            } else {
+                html += `<div>Token presente: <span class="status error">✗ No</span></div>`;
+            }
+
+            html += '</div>';
+            statusDiv.innerHTML = html;
+        }
+
+        function displayUserData() {
+            const user = localStorage.getItem('tickmark_user');
+            const userDiv = document.getElementById('user-data');
+
+            if (user) {
+                try {
+                    const userData = JSON.parse(user);
+                    userDiv.textContent = JSON.stringify(userData, null, 2);
+                } catch (e) {
+                    userDiv.textContent = 'Error: ' + e.message;
+                }
+            } else {
+                userDiv.textContent = 'No hay usuario guardado';
+            }
+        }
+
+        function displayTokenData() {
+            const token = localStorage.getItem('tickmark_access_token');
+            const tokenDiv = document.getElementById('token-data');
+
+            if (token) {
+                try {
+                    const parts = token.split('.');
+                    const header = JSON.parse(atob(parts[0]));
+                    const payload = JSON.parse(atob(parts[1]));
+
+                    tokenDiv.textContent = 'HEADER:\n' + JSON.stringify(header, null, 2) +
+                                          '\n\nPAYLOAD:\n' + JSON.stringify(payload, null, 2);
+                } catch (e) {
+                    tokenDiv.textContent = 'Error al decodificar: ' + e.message;
+                }
+            } else {
+                tokenDiv.textContent = 'No hay token guardado';
+            }
+        }
+
+        async function refreshUser() {
+            const token = localStorage.getItem('tickmark_access_token');
+            if (!token) {
+                alert('No hay token. Por favor, inicia sesión primero.');
+                return;
+            }
+
+            try {
+                const response = await fetch('http://localhost:3000/auth/me', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    localStorage.setItem('tickmark_user', JSON.stringify(userData));
+                    alert('✅ Usuario actualizado correctamente. Recarga la página.');
+                    displayStatus();
+                    displayUserData();
+                } else {
+                    alert('❌ Error al obtener usuario: ' + response.statusText);
+                }
+            } catch (error) {
+                alert('❌ Error de red: ' + error.message);
+            }
+        }
+
+        function cleanAndLogout() {
+            if (confirm('¿Estás seguro de que quieres limpiar el localStorage y cerrar sesión?')) {
+                localStorage.clear();
+                alert('✅ localStorage limpiado. Serás redirigido al login.');
+                window.location.href = 'http://localhost:5173/login';
+            }
+        }
+
+        // Initialize
+        displayStatus();
+        displayUserData();
+        displayTokenData();
+    </script>
+</body>
+</html>

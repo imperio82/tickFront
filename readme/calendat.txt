@@ -1,0 +1,142 @@
+[
+    {
+        "hour": 12,
+        "dayOfWeek": 0,
+        "averageEngagement": 2.6021354166666666,
+        "sampleSize": 1,
+        "score": 100
+    },
+    {
+        "hour": 8,
+        "dayOfWeek": 4,
+        "averageEngagement": 0.15937424789410348,
+        "sampleSize": 1,
+        "score": 6.124748422903439
+    },
+    {
+        "hour": 10,
+        "dayOfWeek": 0,
+        "averageEngagement": 0.13726161369193154,
+        "sampleSize": 1,
+        "score": 5.274960434909401
+    },
+    {
+        "hour": 9,
+        "dayOfWeek": 4,
+        "averageEngagement": 0.1169811320754717,
+        "sampleSize": 1,
+        "score": 4.495582025678142
+    },
+    {
+        "hour": 19,
+        "dayOfWeek": 4,
+        "averageEngagement": 0.11372324159021406,
+        "sampleSize": 1,
+        "score": 4.370381374536358
+    },
+    {
+        "hour": 22,
+        "dayOfWeek": 2,
+        "averageEngagement": 0.11141651031894935,
+        "sampleSize": 1,
+        "score": 4.281733748571541
+    },
+    {
+        "hour": 21,
+        "dayOfWeek": 4,
+        "averageEngagement": 0.08517598343685301,
+        "sampleSize": 1,
+        "score": 3.273310946513436
+    },
+    {
+        "hour": 18,
+        "dayOfWeek": 1,
+        "averageEngagement": 0.07602460794201915,
+        "sampleSize": 2,
+        "score": 2.921623811546542
+    },
+    {
+        "hour": 22,
+        "dayOfWeek": 3,
+        "averageEngagement": 0.06992365424430641,
+        "sampleSize": 2,
+        "score": 2.6871643111440586
+    },
+    {
+        "hour": 11,
+        "dayOfWeek": 1,
+        "averageEngagement": 0.06987951807228916,
+        "sampleSize": 1,
+        "score": 2.685468159140033
+    }
+]
+
+
+envio para generar calendario
+
+{
+    "calendarName": "aaa",
+    "description": "aaaa",
+    "startDate": "2025-12-17",
+    "endDate": "2026-01-16",
+    "postsPerWeek": 5,
+    "strategy": "optimal_hours",
+    "preferredDays": [
+        1,
+        3,
+        5
+    ],
+    "contentMix": {
+        "educational": 50,
+        "entertaining": 30,
+        "promotional": 20
+    }
+}
+
+
+
+respuesta al generar el calendario : {
+    "calendar": {
+        "userId": "463884d9-da80-4025-a855-895ee88bef78",
+        "name": "aaa",
+        "description": "aaaa",
+        "strategy": "optimal_hours",
+        "configuration": {
+            "postsPerWeek": 5,
+            "preferredDays": [
+                1,
+                3,
+                5
+            ],
+            "contentMix": {
+                "educational": 50,
+                "entertaining": 30,
+                "promotional": 20
+            }
+        },
+        "isActive": true,
+        "statistics": {
+            "totalPosts": 0,
+            "distributionByDay": {
+                "sunday": 0,
+                "monday": 0,
+                "tuesday": 0,
+                "wednesday": 0,
+                "thursday": 0,
+                "friday": 0,
+                "saturday": 0
+            },
+            "distributionByHour": {},
+            "averagePostsPerWeek": 0,
+            "optimalHoursUsed": [],
+            "upcomingPosts": 0,
+            "publishedPosts": 0,
+            "draftPosts": 0
+        },
+        "id": "5998336d-2c46-4948-9e22-4623ccfa5b94",
+        "createdAt": "2025-12-18T03:38:03.048Z",
+        "updatedAt": "2025-12-18T03:38:03.062Z"
+    },
+    "posts": []
+}   
+
