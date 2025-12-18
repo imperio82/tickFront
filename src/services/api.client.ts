@@ -10,6 +10,7 @@ export const apiClient: AxiosInstance = axios.create({
   headers: API_CONFIG.HEADERS,
 });
 
+
 // Request interceptor to add auth token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
