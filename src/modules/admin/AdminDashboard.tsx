@@ -55,18 +55,18 @@ export default function AdminDashboard() {
 
       <div className="min-h-screen bg-gray-50 lg:pl-64">
         {/* Mobile Header */}
-        <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between bg-white border-b border-gray-200 px-4 py-3 shadow-sm">
+        <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between bg-white border-b border-gray-200 px-4 py-3 shadow-sm text-black">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="p-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white transition-colors shadow-md active:scale-95"
+              className="p-2 rounded-lg bg-purple-600 hover:bg-purple-700  transition-colors shadow-md active:scale-95"
               aria-label="Abrir menú"
             >
               <Menu className="w-6 h-6" />
             </button>
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
+                <Sparkles className="w-5 h-5 " />
               </div>
               <h1 className="text-lg font-semibold text-gray-800">Admin</h1>
             </div>
