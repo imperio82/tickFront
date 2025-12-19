@@ -470,7 +470,7 @@ export const HomeDashboard: React.FC = () => {
                 <div className="w-8 h-8 bg-gradient-to-br from-purple-600 to-pink-600 rounded-lg flex items-center justify-center">
                   <Sparkles className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-xl font-bold text-gray-800 hidden sm:block">TikAnalytics MVP</span>
+                <span className="text-xl font-bold text-gray-800 hidden sm:block">TikAnalytics</span>
               </div>
             </div>
 
@@ -800,7 +800,7 @@ export const HomeDashboard: React.FC = () => {
                     getStepStatus('scraping') === 'completed' ? 'bg-green-50 border border-green-200' : ''
                   }`}>
                     <p className="font-semibold text-gray-900">🎬 1. Obtener videos del perfil</p>
-                    <p className="text-sm text-gray-500">Scraping con Apify</p>
+                    <p className="text-sm text-gray-500">Obtención de datos del perfil.</p>
                   </div>
                 </div>
                 {/* Información del paso completado */}
@@ -941,7 +941,7 @@ export const HomeDashboard: React.FC = () => {
                     getStepStatus('analyzing') === 'completed' ? 'bg-green-50 border border-green-200' : ''
                   }`}>
                     <p className="font-semibold text-gray-900">🤖 4. Análisis con IA</p>
-                    <p className="text-sm text-gray-500">Google Video Intelligence + Gemini</p>
+                    <p className="text-sm text-gray-500">Detectamos patrones clave para transformar datos en contenido de alto impacto.</p>
                   </div>
                 </div>
                 {/* Información del paso en progreso */}

@@ -138,10 +138,10 @@ const CompetitorsView = () => {
                     <div className={`bg-gradient-to-r ${type.color} p-6`}>
                       <div className="flex items-start justify-between mb-4">
                         <div className="w-12 h-12 bg-white bg-opacity-20 backdrop-blur-sm rounded-lg flex items-center justify-center">
-                          <Icon className="w-7 h-7 text-white" />
+                          <Icon className="w-7 h-7 text-black" />
                         </div>
-                        <span className="px-3 py-1 bg-white bg-opacity-20 backdrop-blur-sm text-white text-xs font-medium rounded-full flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
+                        <span className="px-3 py-1 bg-white bg-opacity-20 backdrop-blur-sm text-black text-xs font-medium rounded-full flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-black" />
                           {type.estimatedTime}
                         </span>
                       </div>

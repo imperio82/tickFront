@@ -108,9 +108,11 @@ const CategoryAnalysisForm = () => {
     }
 
     // Verify credits before submitting
+    const finalAnalyzeTop = Math.min(analyzeTop, maxVideosToAnalyze);
+
     const estimate = creditService.estimateCredits({
       videosAScrappear: numberOfVideos,
-      videosAAnalizar: analyzeTop,
+      videosAAnalizar: finalAnalyzeTop,
       creditosDisponibles: credits,
     });
 
@@ -127,7 +129,7 @@ const CategoryAnalysisForm = () => {
         hashtags: hashtags.length > 0 ? hashtags : undefined,
         keywords: keywords.length > 0 ? keywords : undefined,
         numberOfVideos,
-        analyzeTop,
+        analyzeTop: finalAnalyzeTop,
         region,
         filters: {
           minViews: filters.minViews,
@@ -149,7 +151,33 @@ const CategoryAnalysisForm = () => {
     }
   };
 
-  const estimatedTime = Math.ceil((numberOfVideos * analyzeTop) / 2000);
+  // Calculate maximum videos that can be scraped based on available credits
+  const maxNumberOfVideos = credits * 50; // Total videos we can scrape with all credits
+
+  // Generate dynamic options for "Número de videos" in multiples of 50
+  const getScrapingOptions = () => {
+    const options = [50, 100, 150, 200, 250, 300, 350, 400, 450, 500];
+    return options.filter(opt => opt <= maxNumberOfVideos);
+  };
+
+  // Adjust numberOfVideos if it exceeds the maximum
+  const validNumberOfVideos = Math.min(numberOfVideos, maxNumberOfVideos);
+
+  // Calculate maximum videos that can be analyzed based on available credits
+  const scrapingCredits = Math.ceil(validNumberOfVideos / 50);
+  const creditsForAnalysis = Math.max(0, credits - scrapingCredits);
+  const maxVideosToAnalyze = creditsForAnalysis * 4;
+
+  // Generate dynamic options for "Analizar con IA" based on available credits
+  const getAnalysisOptions = () => {
+    const options = [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48];
+    return options.filter(opt => opt <= maxVideosToAnalyze);
+  };
+
+  // Adjust analyzeTop if it exceeds the maximum
+  const validAnalyzeTop = Math.min(analyzeTop, maxVideosToAnalyze);
+
+  const estimatedTime = Math.ceil((numberOfVideos * validAnalyzeTop) / 2000);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -177,7 +205,7 @@ const CategoryAnalysisForm = () => {
 
       {/* Formulario */}
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6 space-y-6 text-black">
           {/* Hashtags */}
           <div>
             <label className="block text-sm font-semibold text-gray-900 mb-3">
@@ -306,17 +334,32 @@ const CategoryAnalysisForm = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-gray-700 mb-1">Analizar con IA</label>
+                <label className="block text-sm text-gray-700 mb-1">
+                  Analizar con IA (máx: {maxVideosToAnalyze} videos)
+                </label>
                 <select
-                  value={analyzeTop}
+                  value={validAnalyzeTop}
                   onChange={(e) => setAnalyzeTop(Number(e.target.value))}
-                  disabled={isLoading}
+                  disabled={isLoading || maxVideosToAnalyze === 0}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                 >
-                  <option value={20}>20 videos</option>
-                  <option value={30}>30 videos</option>
-                  <option value={50}>50 videos</option>
+                  {maxVideosToAnalyze === 0 ? (
+                    <option value={0}>Sin créditos suficientes</option>
+                  ) : getAnalysisOptions().length === 0 ? (
+                    <option value={0}>Necesitas más créditos</option>
+                  ) : (
+                    getAnalysisOptions().map(option => (
+                      <option key={option} value={option}>
+                        {option} videos ({Math.ceil(option / 4)} créditos)
+                      </option>
+                    ))
+                  )}
                 </select>
+                {maxVideosToAnalyze < 4 && (
+                  <p className="text-xs text-red-600 mt-1">
+                    ⚠️ Necesitas al menos {scrapingCredits + 1} créditos para analizar videos con IA
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm text-gray-700 mb-1">Región</label>
@@ -383,13 +426,59 @@ const CategoryAnalysisForm = () => {
             </div>
           </div>
 
-          {/* Estimación de tiempo */}
+          {/* Estimación de tiempo y créditos */}
           <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <div className="flex items-center justify-between text-sm">
-              <div>
-                <span className="text-gray-700">Tiempo estimado:</span>
-                <span className="ml-2 font-semibold text-purple-900">~{estimatedTime} minutos</span>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <div>
+                  <span className="text-gray-700">Tiempo estimado:</span>
+                  <span className="ml-2 font-semibold text-purple-900">~{estimatedTime} minutos</span>
+                </div>
+                <div>
+                  <span className="text-gray-700">Créditos disponibles:</span>
+                  <span className="ml-2 font-semibold text-purple-900">{credits}</span>
+                </div>
               </div>
+              {(hashtags.length > 0 || keywords.length > 0) && (
+                <div className="text-sm border-t border-purple-200 pt-3">
+                  <p className="font-semibold text-gray-900 mb-2">Estimación de créditos:</p>
+                  <div className="space-y-1 text-gray-700">
+                    <div className="flex justify-between">
+                      <span>Scraping ({numberOfVideos} videos):</span>
+                      <span className="font-medium">{scrapingCredits} créditos</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Análisis con IA ({validAnalyzeTop} videos):</span>
+                      <span className="font-medium">{Math.ceil(validAnalyzeTop / 4)} créditos</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-purple-900 border-t border-purple-200 pt-1 mt-1">
+                      <span>Total necesario:</span>
+                      <span>{creditService.estimateCredits({
+                        videosAScrappear: numberOfVideos,
+                        videosAAnalizar: validAnalyzeTop,
+                        creditosDisponibles: credits,
+                      }).total} créditos</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 border-t border-purple-100 pt-1 mt-1">
+                      <span>Créditos restantes para análisis IA:</span>
+                      <span className="font-medium">{creditsForAnalysis} ({maxVideosToAnalyze} videos máx)</span>
+                    </div>
+                  </div>
+                  {!creditService.estimateCredits({
+                    videosAScrappear: numberOfVideos,
+                    videosAAnalizar: validAnalyzeTop,
+                    creditosDisponibles: credits,
+                  }).tieneCreditos && (
+                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-xs">
+                      ⚠️ Créditos insuficientes. Necesitas {creditService.estimateCredits({
+                        videosAScrappear: numberOfVideos,
+                        videosAAnalizar: validAnalyzeTop,
+                        creditosDisponibles: credits,
+                      }).creditosFaltantes} créditos más.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

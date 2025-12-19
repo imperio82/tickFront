@@ -1,17 +1,38 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, X, Award, User } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 import competitorAnalysisService from '../../services/competitor-analysis.service';
+import creditService from '../../services/credit.service';
 import type { ComparativeAnalysisRequest } from '../../types/competitor-analysis.types';
 
 const ComparativeAnalysisForm = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [yourProfile, setYourProfile] = useState('');
   const [currentCompetitor, setCurrentCompetitor] = useState('');
   const [competitors, setCompetitors] = useState<string[]>([]);
   const [videosPerProfile, setVideosPerProfile] = useState(50);
+  const [credits, setCredits] = useState(0);
+
+  // Load credits
+  useEffect(() => {
+    const loadCredits = async () => {
+      if (!user?.id) return;
+
+      try {
+        const balance = await creditService.getBalance(user.id);
+        setCredits(balance.creditosDisponibles);
+      } catch (error) {
+        console.error('Error loading credits:', error);
+        setCredits(0);
+      }
+    };
+
+    loadCredits();
+  }, [user?.id]);
 
   const handleAddCompetitor = () => {
     if (!currentCompetitor.trim()) {
@@ -53,6 +74,20 @@ const ComparativeAnalysisForm = () => {
 
     if (competitors.length === 0) {
       toast.error('Debes agregar al menos 1 competidor para comparar');
+      return;
+    }
+
+    // Verify credits before submitting
+    const totalVideosToScrape = (competitors.length + 1) * videosPerProfile; // +1 for your profile
+    const estimate = creditService.estimateCredits({
+      videosAScrappear: totalVideosToScrape,
+      videosAAnalizar: 0, // Comparative analysis doesn't analyze videos with AI
+      creditosDisponibles: credits,
+    });
+
+    if (!estimate.tieneCreditos) {
+      toast.error(`Créditos insuficientes. Necesitas ${estimate.total} crédito(s) pero solo tienes ${credits}. Redirigiendo a compra de créditos...`);
+      setTimeout(() => navigate('/credits'), 2000);
       return;
     }
 
@@ -111,7 +146,7 @@ const ComparativeAnalysisForm = () => {
       </div>
 
       {/* Formulario */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8 text-black">
         <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6 space-y-6">
           {/* Tu perfil */}
           <div>
@@ -247,15 +282,53 @@ const ComparativeAnalysisForm = () => {
 
           {/* Estimación */}
           <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="flex items-center justify-between text-sm">
-              <div>
-                <span className="text-gray-700">Tiempo estimado:</span>
-                <span className="ml-2 font-semibold text-green-900">~{estimatedTime} minutos</span>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <div>
+                  <span className="text-gray-700">Tiempo estimado:</span>
+                  <span className="ml-2 font-semibold text-green-900">~{estimatedTime} minutos</span>
+                </div>
+                <div>
+                  <span className="text-gray-700">Créditos disponibles:</span>
+                  <span className="ml-2 font-semibold text-green-900">{credits}</span>
+                </div>
               </div>
-              <div>
-                <span className="text-gray-700">Costo:</span>
-                <span className="ml-2 font-semibold text-green-900">0 créditos</span>
-              </div>
+              {yourProfile && competitors.length > 0 && (
+                <div className="text-sm border-t border-green-200 pt-3">
+                  <p className="font-semibold text-gray-900 mb-2">Estimación de créditos:</p>
+                  <div className="space-y-1 text-gray-700">
+                    <div className="flex justify-between">
+                      <span>Scraping ({(competitors.length + 1) * videosPerProfile} videos):</span>
+                      <span className="font-medium">{Math.ceil(((competitors.length + 1) * videosPerProfile) / 50)} créditos</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Análisis con IA:</span>
+                      <span className="font-medium">0 créditos</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-green-900 border-t border-green-200 pt-1 mt-1">
+                      <span>Total necesario:</span>
+                      <span>{creditService.estimateCredits({
+                        videosAScrappear: (competitors.length + 1) * videosPerProfile,
+                        videosAAnalizar: 0,
+                        creditosDisponibles: credits,
+                      }).total} créditos</span>
+                    </div>
+                  </div>
+                  {!creditService.estimateCredits({
+                    videosAScrappear: (competitors.length + 1) * videosPerProfile,
+                    videosAAnalizar: 0,
+                    creditosDisponibles: credits,
+                  }).tieneCreditos && (
+                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-xs">
+                      ⚠️ Créditos insuficientes. Necesitas {creditService.estimateCredits({
+                        videosAScrappear: (competitors.length + 1) * videosPerProfile,
+                        videosAAnalizar: 0,
+                        creditosDisponibles: credits,
+                      }).creditosFaltantes} créditos más.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

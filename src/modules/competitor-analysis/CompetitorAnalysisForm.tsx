@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, X, Search, TrendingUp } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 import competitorAnalysisService from '../../services/competitor-analysis.service';
+import creditService from '../../services/credit.service';
 import type { CompetitorAnalysisRequest } from '../../types/competitor-analysis.types';
 
 const CompetitorAnalysisForm = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [currentProfile, setCurrentProfile] = useState('');
   const [competitors, setCompetitors] = useState<string[]>([]);
@@ -17,6 +20,24 @@ const CompetitorAnalysisForm = () => {
     minViews: 5000,
     minEngagementRate: 0.03,
   });
+  const [credits, setCredits] = useState(0);
+
+  // Load credits
+  useEffect(() => {
+    const loadCredits = async () => {
+      if (!user?.id) return;
+
+      try {
+        const balance = await creditService.getBalance(user.id);
+        setCredits(balance.creditosDisponibles);
+      } catch (error) {
+        console.error('Error loading credits:', error);
+        setCredits(0);
+      }
+    };
+
+    loadCredits();
+  }, [user?.id]);
 
   const handleAddCompetitor = () => {
     if (!currentProfile.trim()) {
@@ -60,13 +81,30 @@ const CompetitorAnalysisForm = () => {
       return;
     }
 
+    // Verify credits before submitting
+    const finalVideosPerProfile = Math.min(videosPerProfile, maxVideosPerProfile);
+    const totalVideosToScrape = competitors.length * finalVideosPerProfile;
+    const finalAnalyzeTop = Math.min(analyzeTop, maxVideosToAnalyze);
+
+    const estimate = creditService.estimateCredits({
+      videosAScrappear: totalVideosToScrape,
+      videosAAnalizar: finalAnalyzeTop,
+      creditosDisponibles: credits,
+    });
+
+    if (!estimate.tieneCreditos) {
+      toast.error(`Créditos insuficientes. Necesitas ${estimate.total} crédito(s) pero solo tienes ${credits}. Redirigiendo a compra de créditos...`);
+      setTimeout(() => navigate('/credits'), 2000);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
       const requestData: CompetitorAnalysisRequest = {
         competitorProfiles: competitors,
-        videosPerProfile,
-        analyzeTop,
+        videosPerProfile: finalVideosPerProfile,
+        analyzeTop: finalAnalyzeTop,
         filters: {
           minViews: filters.minViews,
           minEngagementRate: filters.minEngagementRate,
@@ -89,7 +127,36 @@ const CompetitorAnalysisForm = () => {
     }
   };
 
-  const estimatedTime = Math.ceil((competitors.length * videosPerProfile * analyzeTop) / 1000);
+  // Calculate maximum videos per profile that can be scraped based on available credits
+  const maxVideosPerProfileTotal = credits * 50; // Total videos we can scrape with all credits
+  const maxVideosPerProfile = competitors.length > 0
+    ? Math.floor(maxVideosPerProfileTotal / competitors.length)
+    : maxVideosPerProfileTotal;
+
+  // Generate dynamic options for "Videos por perfil" in multiples of 50
+  const getScrapingOptions = () => {
+    const options = [50, 100, 150, 200, 250, 300, 350, 400, 450, 500];
+    return options.filter(opt => opt <= maxVideosPerProfile);
+  };
+
+  // Adjust videosPerProfile if it exceeds the maximum
+  const validVideosPerProfile = Math.min(videosPerProfile, maxVideosPerProfile);
+
+  // Calculate maximum videos that can be analyzed based on available credits
+  const scrapingCredits = Math.ceil((competitors.length * validVideosPerProfile) / 50);
+  const creditsForAnalysis = Math.max(0, credits - scrapingCredits);
+  const maxVideosToAnalyze = creditsForAnalysis * 4;
+
+  // Generate dynamic options for "Analizar con IA" based on available credits
+  const getAnalysisOptions = () => {
+    const options = [4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48];
+    return options.filter(opt => opt <= maxVideosToAnalyze);
+  };
+
+  // Adjust analyzeTop if it exceeds the maximum
+  const validAnalyzeTop = Math.min(analyzeTop, maxVideosToAnalyze);
+
+  const estimatedTime = Math.ceil((competitors.length * videosPerProfile * validAnalyzeTop) / 1000);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -116,7 +183,7 @@ const CompetitorAnalysisForm = () => {
       </div>
 
       {/* Formulario */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
+      <div className="max-w-4xl mx-auto px-4 py-8 text-black">
         <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-sm p-6 space-y-6">
           {/* Paso 1: Buscar perfiles */}
           <div>
@@ -201,35 +268,61 @@ const CompetitorAnalysisForm = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm text-gray-700 mb-1">
-                  Videos por perfil
+                  Videos por perfil (máx: {maxVideosPerProfile} videos)
                 </label>
                 <select
-                  value={videosPerProfile}
+                  value={validVideosPerProfile}
                   onChange={(e) => setVideosPerProfile(Number(e.target.value))}
-                  disabled={isLoading}
+                  disabled={isLoading || competitors.length === 0 || credits === 0}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value={20}>20 videos</option>
-                  <option value={30}>30 videos</option>
-                  <option value={50}>50 videos</option>
-                  <option value={100}>100 videos</option>
+                  {credits === 0 ? (
+                    <option value={0}>Sin créditos</option>
+                  ) : competitors.length === 0 ? (
+                    <option value={50}>Agrega competidores primero</option>
+                  ) : getScrapingOptions().length === 0 ? (
+                    <option value={0}>Necesitas más créditos</option>
+                  ) : (
+                    getScrapingOptions().map(option => (
+                      <option key={option} value={option}>
+                        {option} videos ({Math.ceil((competitors.length * option) / 50)} créditos)
+                      </option>
+                    ))
+                  )}
                 </select>
+                {competitors.length > 0 && maxVideosPerProfile < 50 && (
+                  <p className="text-xs text-red-600 mt-1">
+                    ⚠️ Necesitas al menos {Math.ceil((competitors.length * 50) / 50)} créditos para scrapear 50 videos por perfil
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm text-gray-700 mb-1">
-                  Analizar con IA
+                  Analizar con IA (máx: {maxVideosToAnalyze} videos)
                 </label>
                 <select
-                  value={analyzeTop}
+                  value={validAnalyzeTop}
                   onChange={(e) => setAnalyzeTop(Number(e.target.value))}
-                  disabled={isLoading}
+                  disabled={isLoading || maxVideosToAnalyze === 0 || competitors.length === 0}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value={10}>10 videos</option>
-                  <option value={20}>20 videos</option>
-                  <option value={30}>30 videos</option>
-                  <option value={50}>50 videos</option>
+                  {maxVideosToAnalyze === 0 ? (
+                    <option value={0}>Sin créditos suficientes</option>
+                  ) : getAnalysisOptions().length === 0 ? (
+                    <option value={0}>Necesitas más créditos</option>
+                  ) : (
+                    getAnalysisOptions().map(option => (
+                      <option key={option} value={option}>
+                        {option} videos ({Math.ceil(option / 4)} créditos)
+                      </option>
+                    ))
+                  )}
                 </select>
+                {competitors.length > 0 && maxVideosToAnalyze < 4 && (
+                  <p className="text-xs text-red-600 mt-1">
+                    ⚠️ Necesitas al menos {scrapingCredits + 1} créditos para analizar videos con IA
+                  </p>
+                )}
               </div>
             </div>
 
@@ -282,15 +375,57 @@ const CompetitorAnalysisForm = () => {
 
           {/* Estimación */}
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <div className="flex items-center justify-between text-sm">
-              <div>
-                <span className="text-gray-700">Tiempo estimado:</span>
-                <span className="ml-2 font-semibold text-blue-900">~{estimatedTime} minutos</span>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <div>
+                  <span className="text-gray-700">Tiempo estimado:</span>
+                  <span className="ml-2 font-semibold text-blue-900">~{estimatedTime} minutos</span>
+                </div>
+                <div>
+                  <span className="text-gray-700">Créditos disponibles:</span>
+                  <span className="ml-2 font-semibold text-blue-900">{credits}</span>
+                </div>
               </div>
-              <div>
-                <span className="text-gray-700">Costo:</span>
-                <span className="ml-2 font-semibold text-blue-900">0 créditos</span>
-              </div>
+              {competitors.length > 0 && (
+                <div className="text-sm border-t border-blue-200 pt-3">
+                  <p className="font-semibold text-gray-900 mb-2">Estimación de créditos:</p>
+                  <div className="space-y-1 text-gray-700">
+                    <div className="flex justify-between">
+                      <span>Scraping ({competitors.length} perfiles × {validVideosPerProfile} videos):</span>
+                      <span className="font-medium">{scrapingCredits} créditos</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Análisis con IA ({validAnalyzeTop} videos):</span>
+                      <span className="font-medium">{Math.ceil(validAnalyzeTop / 4)} créditos</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-blue-900 border-t border-blue-200 pt-1 mt-1">
+                      <span>Total necesario:</span>
+                      <span>{creditService.estimateCredits({
+                        videosAScrappear: competitors.length * validVideosPerProfile,
+                        videosAAnalizar: validAnalyzeTop,
+                        creditosDisponibles: credits,
+                      }).total} créditos</span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 border-t border-blue-100 pt-1 mt-1">
+                      <span>Créditos restantes para análisis IA:</span>
+                      <span className="font-medium">{creditsForAnalysis} ({maxVideosToAnalyze} videos máx)</span>
+                    </div>
+                  </div>
+                  {!creditService.estimateCredits({
+                    videosAScrappear: competitors.length * videosPerProfile,
+                    videosAAnalizar: analyzeTop,
+                    creditosDisponibles: credits,
+                  }).tieneCreditos && (
+                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-yellow-800 text-xs">
+                      ⚠️ Créditos insuficientes. Necesitas {creditService.estimateCredits({
+                        videosAScrappear: competitors.length * videosPerProfile,
+                        videosAAnalizar: analyzeTop,
+                        creditosDisponibles: credits,
+                      }).creditosFaltantes} créditos más.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
