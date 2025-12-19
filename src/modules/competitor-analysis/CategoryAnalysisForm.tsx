@@ -320,18 +320,32 @@ const CategoryAnalysisForm = () => {
             <label className="block text-sm font-semibold text-gray-900">Configuración:</label>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm text-gray-700 mb-1">Número de videos</label>
+                <label className="block text-sm text-gray-700 mb-1">
+                  Número de videos (máx: {maxNumberOfVideos} videos)
+                </label>
                 <select
-                  value={numberOfVideos}
+                  value={validNumberOfVideos}
                   onChange={(e) => setNumberOfVideos(Number(e.target.value))}
-                  disabled={isLoading}
+                  disabled={isLoading || credits === 0}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
                 >
-                  <option value={100}>100 videos</option>
-                  <option value={200}>200 videos</option>
-                  <option value={300}>300 videos</option>
-                  <option value={500}>500 videos</option>
+                  {credits === 0 ? (
+                    <option value={0}>Sin créditos</option>
+                  ) : getScrapingOptions().length === 0 ? (
+                    <option value={0}>Necesitas más créditos</option>
+                  ) : (
+                    getScrapingOptions().map(option => (
+                      <option key={option} value={option}>
+                        {option} videos ({Math.ceil(option / 50)} créditos)
+                      </option>
+                    ))
+                  )}
                 </select>
+                {maxNumberOfVideos < 50 && (
+                  <p className="text-xs text-red-600 mt-1">
+                    ⚠️ Necesitas al menos 1 crédito para scrapear 50 videos
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm text-gray-700 mb-1">
